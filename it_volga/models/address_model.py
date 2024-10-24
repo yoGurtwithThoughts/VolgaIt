@@ -1,34 +1,21 @@
-import pandas as pd
-import spacy
-import os
+import re
 
-def load_addresses(data_dir):
-    """Загрузка адресов из CSV файла."""
-    addresses_file = os.path.join(data_dir, "volgait2024-semifinal-addresses.csv")
-    try:
-        return pd.read_csv(addresses_file, sep=";", encoding="utf-8")
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Файл '{addresses_file}' не найден.")
-    except pd.errors.ParserError as e:
-        raise ValueError(f"Ошибка при парсинге файла: {e}")
 
 def recognize_addresses(comment, addresses_df):
-    """Распознавание адресов в комментарии с использованием spaCy."""
-    try:
-        nlp = spacy.load("ru_core_news_sm")
-    except OSError:
-        raise RuntimeError("Модель 'ru_core_news_sm' не найдена. Установите её с помощью 'python -m spacy download ru_core_news_sm'.")
+    """Распознавание адресов в комментарии с использованием регулярных выражений."""
+    recognized_info = []
+    addresses_list = addresses_df['house_full_address'].tolist()
 
-    doc = nlp(comment)
-    recognized_uuids = []
+    for address in addresses_list:
+        if re.search(re.escape(address), comment, re.IGNORECASE):
+            # Check if 'comment' column exists
+            if 'comment' in addresses_df.columns:
+                comment_for_address = addresses_df.loc[addresses_df['house_full_address'] == address, 'comment']
+                if not comment_for_address.empty:
+                    recognized_info.append((address, comment_for_address.values[0]))
+                else:
+                    recognized_info.append((address, "Комментарий отсутствует"))
+            else:
+                recognized_info.append((address, "Комментарий не найден в данных"))
 
-    # Итерация по распознанным сущностям в комментарии
-    for ent in doc.ents:
-        if ent.label_ == "ADDRESS":  # Убедитесь, что у вас есть модель с меткой "ADDRESS"
-            address = ent.text.strip()
-            # Используйте метод `str.contains` с учетом отсутствия символов в конце
-            match = addresses_df[addresses_df['house_full_address'].str.contains(re.escape(address), case=False)]
-            if not match.empty:
-                recognized_uuids.extend(match['house_uuid'].values)
-
-    return recognized_uuids
+    return recognized_info

@@ -3,6 +3,9 @@ import pandas as pd
 
 def create_task_file(data_dir):
     """Create task file if it doesn't exist."""
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)  # Create the directory if it doesn't exist
+
     task_file = os.path.join(data_dir, "volgait2024-semifinal-task.csv")
     if not os.path.exists(task_file):
         # Create a dummy task file for testing purposes
@@ -16,9 +19,4 @@ def create_task_file(data_dir):
         }
         df = pd.DataFrame(data)
         df.to_csv(task_file, sep=";", index=False, encoding="utf-8")
-
-def save_results(data_dir, results):
-    """Save results to a CSV file."""
-    result_file = os.path.join(data_dir, "volgait2024-semifinal-result.csv")
-    df = pd.DataFrame(results)
-    df.to_csv(result_file, sep=";", index=False, encoding="utf-8")
+        print(f"Created task file: {task_file}")
